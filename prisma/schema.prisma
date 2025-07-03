@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int      @id @default(autoincrement()) 
+  userId     String   @unique         // userId จาก Line
+  name       String                  // displayName จาก Line
+  pictureUrl String?                 // รูปภาพโปรไฟล์
+  uid        String   @unique        // รหัส A123 สร้างเอง
+  role       String   @default("user")
+  userpoint  Int      @default(0)     // คะแนนสะสม
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Menu {
+  id       Int      @id @default(autoincrement()) // Primary Key
+  idmenu   String   @unique                      // รหัสเมนูที่ไม่ซ้ำ
+  name     String                                // ชื่อเมนู
+  picture  String?                             // รูปภาพของเมนู
+  category String                                // หมวดหมู่ของเมนู
+  date     DateTime                              // วันที่เริ่มใช้
+  exp      DateTime                              // วันหมดอายุ
+  status   Boolean   @default(true)              // สถานะของเมนู (ใช้งาน/ไม่ใช้งาน)
+}
+
+model Coupon {
+  id       Int      @id @default(autoincrement()) // Primary Key
+  idcoupon String   @unique                      // รหัสคูปองที่ไม่ซ้ำ
+  idmenu   String                                // รหัสเมนูที่คูปองนี้ใช้ได้
+  menuname String                                // ชื่อเมนู
+  couponunit    Int                                    // จำนวนของคูปองที่มี
+  point    Int                                   // คะแนนหรือแต้มของคูปอง
+  date     DateTime                              // วันที่เริ่มใช้
+  exp      DateTime                              // วันหมดอายุ
+  status   Boolean   @default(true)              // สถานะของคูปอง (ใช้งาน/ไม่ใช้งาน)
+}
+
+model userCoupon {
+  id       Int      @id @default(autoincrement()) // Primary Key
+  uid      String   @unique                      // รหัส A123 สร้างเอง
+  idcoupon String   @unique                      // รหัสคูปองที่ไม่ซ้ำ
+  idmenu   String                                // รหัสเมนูที่คูปองนี้ใช้ได้
+  menuname String                                // ชื่อเมนู
+  unit     Int                                   // จำนวนที่ของคูปอง
+  date     DateTime                              // วันที่เริ่มใช้
+  exp      DateTime                              // วันหมดอายุ
+  status   Boolean   @default(true)              // สถานะของคูปอง (ใช้งาน/ไม่ใช้งาน)
+}
+
