@@ -20,5 +20,6 @@ router.post('/', menuController.createMenu);
 router.get('/:idmenu', menuController.getMenuById);
 router.delete('/:idmenu', menuController.deleteMenu);
 router.get('/', menuController.getAllMenus);
+router.put('/update/:idmenu', menuController.updateMenu);
 
 module.exports = router;

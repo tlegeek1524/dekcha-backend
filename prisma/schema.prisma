@@ -1,63 +1,127 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id         Int      @id @default(autoincrement()) 
-  userId     String   @unique         // userId จาก Line
-  name       String                  // displayName จาก Line
-  pictureUrl String?                 // รูปภาพโปรไฟล์
-  uid        String   @unique        // รหัส A123 สร้างเอง
-  role       String   @default("user")
-  userpoint  Int      @default(0)     // คะแนนสะสม
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model user {
+  id          Int      @id @default(autoincrement())
+  userid      String   @unique
+  name        String
+  pictureurl  String?
+  uid         String   @unique
+  role        String   @default("user")
+  userpoint   Float      @default(0)
+  isactive    Boolean  @default(true)
+  createdat   DateTime @default(now())
+  updatedat   DateTime @updatedAt
+  phonenumber String?
 }
 
-model Menu {
-  id       Int      @id @default(autoincrement()) // Primary Key
-  idmenu   String   @unique                      // รหัสเมนูที่ไม่ซ้ำ
-  name     String                                // ชื่อเมนู
-  picture  String?                             // รูปภาพของเมนู
-  category String                                // หมวดหมู่ของเมนู
-  date     DateTime                              // วันที่เริ่มใช้
-  exp      DateTime                              // วันหมดอายุ
-  status   Boolean   @default(true)              // สถานะของเมนู (ใช้งาน/ไม่ใช้งาน)
+model menu {
+  id       Int      @id @default(autoincrement())
+  idmenu   String   @unique
+  name     String
+  point    Int
+  category String
+  date     DateTime
+  exp      DateTime
+  status   Int      @default(1)
+  image    String?
 }
 
 model Coupon {
-  id       Int      @id @default(autoincrement()) // Primary Key
-  idcoupon String   @unique                      // รหัสคูปองที่ไม่ซ้ำ
-  idmenu   String                                // รหัสเมนูที่คูปองนี้ใช้ได้
-  menuname String                                // ชื่อเมนู
-  couponunit    Int                                    // จำนวนของคูปองที่มี
-  point    Int                                   // คะแนนหรือแต้มของคูปอง
-  date     DateTime                              // วันที่เริ่มใช้
-  exp      DateTime                              // วันหมดอายุ
-  status   Boolean   @default(true)              // สถานะของคูปอง (ใช้งาน/ไม่ใช้งาน)
+  id         Int      @id @default(autoincrement())
+  idcoupon   String   @unique
+  idmenu     String
+  menuname   String
+  couponunit Int
+  point      Int
+  date       DateTime
+  exp        DateTime
+  status     Boolean  @default(true)
+  name_cop   String
 }
 
 model userCoupon {
-  id       Int      @id @default(autoincrement()) // Primary Key
-  uid      String   @unique                      // รหัส A123 สร้างเอง
-  idcoupon String   @unique                      // รหัสคูปองที่ไม่ซ้ำ
-  idmenu   String                                // รหัสเมนูที่คูปองนี้ใช้ได้
-  menuname String                                // ชื่อเมนู
-  unit     Int                                   // จำนวนที่ของคูปอง
-  date     DateTime                              // วันที่เริ่มใช้
-  exp      DateTime                              // วันหมดอายุ
-  status   Boolean   @default(true)              // สถานะของคูปอง (ใช้งาน/ไม่ใช้งาน)
+  id         Int      @id @default(autoincrement())
+  uid        String
+  idcoupon   String   @unique
+  idmenu     String
+  menuname   String
+  unit       Int
+  date       DateTime
+  exp        DateTime
+  status     Boolean  @default(true)
+  image_menu String?
+  name_cop   String
+  point_cop  Int
+  code_cop   String?  @unique
 }
 
+model Empuser {
+  id            Int      @id @default(autoincrement())
+  empid         String   @unique
+  firstname_emp String
+  lastname_emp  String?
+  name_emp      String
+  pincode_emp   String?
+  password_emp  String?
+  role          String   @default("employee")
+  isactive      Boolean  @default(true)
+  status        Boolean  @default(true)
+  createdat     DateTime @default(now())
+  updatedat     DateTime @updatedAt
+  email_emp     String?
+  phone_emp     String?
+}
+
+model PointLog {
+  id           Int      @id @default(autoincrement())
+  empid        String
+  uid          String
+  point        Float
+  description  String
+  createdat    DateTime @default(now())
+  addby        String
+  data_input   String?
+  name_emp     String
+  point_status Boolean  @default(true)
+}
+
+model CouponHistory {
+  id          Int      @id @default(autoincrement())
+  empid       String
+  uid         String
+  idcoupon    String
+  menuname    String
+  unit        Int
+  description String
+  createdat   DateTime @default(now())
+  status_Cop  Boolean  @default(true)
+}
+
+model Mailbox {
+  id        Int      @id @default(autoincrement())
+  uid       String
+  idcoupon  String
+  subject   String
+  message   String
+  isread    Boolean  @default(false)
+  createdat DateTime @default(now())
+  exp       DateTime
+  status    Boolean  @default(true)
+  updatedat DateTime
+}
+
+model Poll_Point {
+  id          Int      @id @default(autoincrement())
+  empid       String
+  uid         String
+  point       Int
+  description String
+  createdat   DateTime @default(now())
+}
