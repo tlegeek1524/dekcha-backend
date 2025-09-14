@@ -240,11 +240,63 @@ async function getAllCustomerUsers(req, res) {
   }
 }
 
+// ฟังก์ชันสำหรับลบพนักงาน (เฉพาะ admin เท่านั้น)
+async function deleteEmployee(req, res) {
+  try {
+    // ดึง token จาก cookie หรือ Authorization header
+    let token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'ไม่พบ token' });
+    }
 
+    // ตรวจสอบและ decode token
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // ตรวจสอบ role ของผู้ใช้
+    const currentUser = await prisma.empuser.findUnique({
+      where: { empid: decoded.empid },
+      select: { role: true }
+    });
+
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'เข้าถึงไม่ได้: เฉพาะผู้ดูแลระบบเท่านั้น' });
+    }
+
+    // รับ empid ของพนักงานที่ต้องการลบจาก params
+    const { empid } = req.params;
+    if (!empid) {
+      return res.status(400).json({ error: 'กรุณาระบุ empid ของพนักงานที่ต้องการลบ' });
+    }
+
+    // ตรวจสอบว่ามีพนักงานนี้อยู่จริงหรือไม่
+    const employee = await prisma.empuser.findUnique({ where: { empid } });
+    if (!employee) {
+      return res.status(404).json({ error: 'ไม่พบพนักงานที่ต้องการลบ' });
+    }
+
+    // ลบพนักงาน
+    await prisma.empuser.delete({ where: { empid } });
+
+    res.json({
+      status: 'OK',
+      message: `ลบพนักงาน empid: ${empid} สำเร็จ`
+    });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token หมดอายุ' });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token ไม่ถูกต้อง' });
+    }
+    console.error(error);
+    res.status(500).json({ error: 'ไม่สามารถลบพนักงานได้' });
+  }
+}
 
 module.exports = {
   loginUser,
   verifyToken,
   getAllEmployees,
-  getAllCustomerUsers, // เพิ่มฟังก์ชันนี้เข้าไปใน exports
+  getAllCustomerUsers,
+  deleteEmployee, // เพิ่มฟังก์ชันนี้เข้าไปใน exports
 };
