@@ -87,40 +87,50 @@ async function redeemCouponByCode(coupon_code, empid) {
   if (!coupon.status) throw new Error("คูปองถูกใช้งานไปแล้ว");
   if (coupon.exp && new Date(coupon.exp) < new Date()) throw new Error("คูปองหมดอายุแล้ว");
 
-  await prisma.$transaction(async (tx) => {
-    // อัพเดทสถานะคูปอง
-    await tx.userCoupon.update({
-      where: { idcoupon: coupon.idcoupon },
-      data: { status: false },
-    });
+  // ดึงข้อมูลพนักงานเพื่อเอา name_emp
+  const employee = await prisma.empuser.findUnique({ where: { empid } });
+  if (!employee) throw new Error("ไม่พบข้อมูลพนักงาน");
 
-    // สร้าง history การใช้งาน
-    const couponHistory = await tx.couponHistory.create({
-      data: {
-        empid,
-        uid: coupon.uid,
-        idcoupon: coupon.idcoupon,
-        menuname: coupon.menuname,
-        unit: coupon.unit,
-        description: `คูปองถูกใช้โดยพนักงาน ID: ${empid}`,
-        status_Cop: false,
-      },
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // อัพเดทสถานะคูปอง
+      await tx.userCoupon.update({
+        where: { idcoupon: coupon.idcoupon },
+        data: { status: false },
+      });
 
-    // บันทึกข้อมูลเข้า receipt_coupon ตาม SQL query ที่กำหนด
-    await tx.receiptCoupon.create({
-      data: {
-        MENU_NAME: coupon.menuname,
-        POINT_COUPON: coupon.point_cop,
-        UID: coupon.uid,
-        CODE_COUPON: coupon.code_cop,
-        CREATE_DATE: couponHistory.createdat || new Date(),
-        EMPLOYEE_ID: empid,
-        UNIT: coupon.unit,
-        coupon_status: 'ใช้งานแล้ว'
-      },
+      // สร้าง history การใช้งาน
+      const couponHistory = await tx.couponHistory.create({
+        data: {
+          empid,
+          uid: coupon.uid,
+          idcoupon: coupon.idcoupon,
+          menuname: coupon.menuname,
+          unit: coupon.unit,
+          description: `คูปองถูกใช้โดยพนักงาน ID: ${empid}`,
+          status_Cop: false,
+        },
+      });
+
+      // บันทึกข้อมูลเข้า receipt_coupon ตาม schema ที่กำหนด
+      await tx.receipt_coupon.create({
+        data: {
+          menu_name: coupon.menuname,
+          point_coupon: coupon.point_cop,
+          uid: coupon.uid,
+          code_coupon: coupon.code_cop,
+          create_date: couponHistory.createdat || new Date(),
+          employee_id: empid,
+          name_emp: employee.name_emp,
+          unit: coupon.unit,
+          coupon_status: 'ใช้งานแล้ว'
+        },
+      });
     });
-  });
+  } catch (error) {
+    console.error('Transaction failed:', error);
+    throw new Error(`ไม่สามารถใช้งานคูปองได้: ${error.message}`);
+  }
 
   return coupon;
 }
