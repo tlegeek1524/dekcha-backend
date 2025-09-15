@@ -76,7 +76,6 @@ exports.redeemCouponByCode = async (req, res) => {
   }
 };
 
-
 // ✅ Get Logs
 exports.getLogusecoupon = async (req, res) => {
   try {
@@ -89,5 +88,49 @@ exports.getLogusecoupon = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message || "เกิดข้อผิดพลาด" });
+  }
+};
+
+exports.getReceiptCouponsByUid = async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    if (!uid) {
+      return res.status(400).json({
+        success: false,
+        message: 'กรุณาระบุ UID'
+      });
+    }
+
+    const receiptCoupons = await prisma.receipt_coupon.findMany({
+      where: {
+        uid: uid
+      },
+      orderBy: {
+        create_date: 'desc'
+      }
+    });
+
+    // ตรวจสอบว่ามีข้อมูลหรือไม่
+    if (!receiptCoupons || receiptCoupons.length === 0) {
+      return res.json({
+        success: false,
+        status: 'No',
+        message: 'กรุณากรอก uid'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'ดึงข้อมูลสำเร็จ',
+      data: receiptCoupons,
+    });
+
+  } catch (error) {
+    console.error('Error in getReceiptCouponsByUserId controller:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
   }
 };

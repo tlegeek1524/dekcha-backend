@@ -7,7 +7,8 @@ const {
     redeemCouponByCode, 
     getUserCoupons, 
     deleteUserCoupon,
-    getLogusecoupon
+    getLogusecoupon,
+    getReceiptCouponsByUid
 } = require("../controller/couponController");
 const { authenticateEmployee } = require('../middleware/employeeAuth');
 
@@ -24,5 +25,7 @@ router.get("/:user_uid", getUserCoupons);
 
 // ลบคูปอง
 router.delete("/delete/:coupon_id", deleteUserCoupon);
+
+router.get("/receipt/:uid", getReceiptCouponsByUid);
 
 module.exports = router;
