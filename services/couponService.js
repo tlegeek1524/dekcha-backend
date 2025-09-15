@@ -3,35 +3,19 @@ const { v4: uuidv4 } = require("uuid");
 const prisma = require("../utils/prisma");
 const { genCodeCoupon } = require("../utils/gencodecoupon");
 
-function getThaiDate() {
-  const date = new Date();
-  const bangkokTime = new Date(
-    date.toLocaleString("en-US", { timeZone: "Asia/Bangkok" })
-  );
-  return bangkokTime;
-}
-
 async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid, menu_image }) {
   return prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({ where: { userid: user_id } });
     if (!user) throw new Error("ไม่พบผู้ใช้ในระบบ");
     if (user.userpoint < points_used) throw new Error("แต้มไม่เพียงพอในการแลกคูปอง");
 
-    // หักแต้ม
     await tx.user.update({
       where: { userid: user_id },
       data: { userpoint: user.userpoint - points_used },
     });
 
-    // สร้างโค้ดคูปอง
     const couponCode = await genCodeCoupon(tx, user_id, 6);
 
-    // เวลาไทยปัจจุบัน
-    const nowThai = getThaiDate();
-    const expThai = new Date(nowThai);
-    expThai.setDate(expThai.getDate() + 7);
-
-    // บันทึกคูปองใหม่
     const newCoupon = await tx.userCoupon.create({
       data: {
         uid: user.uid,
@@ -43,12 +27,11 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
         point_cop: points_used,
         unit: 1,
         code_cop: couponCode,
-        date: nowThai,
-        exp: expThai,
+        date: new Date(),
+        exp: new Date(new Date().setDate(new Date().getDate() + 7)),
       },
     });
 
-    // บันทึกประวัติการใช้แต้ม
     await tx.pointLog.create({
       data: {
         empid: "SYSTEM",
@@ -59,7 +42,6 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
         point: points_used,
         point_status: false,
         description: `แลกคูปองเมนู ${menu_name}`,
-        createdAt: nowThai, // 👈 เพิ่มตรงนี้ให้เป็นเวลาไทย
       },
     });
 
