@@ -3,6 +3,14 @@ const { v4: uuidv4 } = require("uuid");
 const prisma = require("../utils/prisma");
 const { genCodeCoupon } = require("../utils/gencodecoupon");
 
+function getThaiDate() {
+  const date = new Date();
+  const bangkokTime = new Date(
+    date.toLocaleString("en-US", { timeZone: "Asia/Bangkok" })
+  );
+  return bangkokTime;
+}
+
 async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid, menu_image }) {
   return prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({ where: { userid: user_id } });
@@ -42,6 +50,7 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
         point: points_used,
         point_status: false,
         description: `แลกคูปองเมนู ${menu_name}`,
+        createdAt: nowThai, // 👈 เพิ่มตรงนี้ให้เป็นเวลาไทย
       },
     });
 
@@ -141,10 +150,29 @@ async function getCouponLogs() {
   });
 }
 
+async function getReceiptCouponsByUid(uid) {
+  try {
+    const receiptCoupons = await prisma.receipt_coupon.findMany({
+      where: {
+        uid: uid
+      },
+      orderBy: {
+        create_date: 'desc'
+      }
+    });
+    
+    return receiptCoupons;
+  } catch (error) {
+    console.error('Error fetching receipt coupons:', error);
+    throw new Error(`ไม่สามารถดึงข้อมูลคูปองได้: ${error.message}`);
+  }
+}
+
 module.exports = {
   redeemCoupon,
   getUserCoupons,
   deleteUserCoupon,
   redeemCouponByCode,
   getCouponLogs,
+  getReceiptCouponsByUid,
 };
