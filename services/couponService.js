@@ -82,20 +82,39 @@ async function deleteUserCoupon(coupon_id) {
 }
 
 async function redeemCouponByCode(coupon_code, empid) {
-  const coupon = await prisma.userCoupon.findFirst({ where: { code_cop: coupon_code } });
+  // --- 1. ค้นหาข้อมูลพนักงานก่อน ---
+  // เพื่อให้แน่ใจว่า empid ที่ส่งมามีอยู่จริง และเพื่อดึงชื่อพนักงาน
+  const employee = await prisma.empuser.findUnique({
+    where: { empid: empid },
+  });
+
+  if (!employee) {
+    throw new Error("ไม่พบข้อมูลพนักงาน");
+  }
+
+  // --- 2. ค้นหาคูปอง และตรวจสอบเงื่อนไข ---
+  const coupon = await prisma.userCoupon.findFirst({
+    where: { code_cop: coupon_code },
+  });
+
   if (!coupon) throw new Error("คูปองไม่ถูกต้อง");
-  if (!coupon.status) throw new Error("คูปองถูกใช้งานไปแล้ว");
+  // ตรวจสอบสถานะเดิม: หากใน DB เป็น false แสดงว่าเคยใช้แล้ว
+  if (coupon.status === false) throw new Error("คูปองนี้ถูกใช้งานไปแล้ว");
   if (coupon.exp && new Date(coupon.exp) < new Date()) throw new Error("คูปองหมดอายุแล้ว");
 
-  await prisma.$transaction(async (tx) => {
+  // --- 3. ใช้ Transaction เพื่อจัดการข้อมูลทั้งหมด ---
+  // เพื่อให้แน่ใจว่าทุกอย่างจะสำเร็จ หรือไม่สำเร็จเลยทั้งหมด
+  const result = await prisma.$transaction(async (tx) => {
+    // อัปเดตสถานะคูปองเป็น "ใช้งานแล้ว" (false)
     await tx.userCoupon.update({
       where: { idcoupon: coupon.idcoupon },
       data: { status: false },
     });
 
-    await tx.couponHistory.create({
+    // สร้างประวัติการใช้งานคูปอง
+    const newHistory = await tx.couponHistory.create({
       data: {
-        empid,
+        empid: empid,
         uid: coupon.uid,
         idcoupon: coupon.idcoupon,
         menuname: coupon.menuname,
@@ -104,9 +123,26 @@ async function redeemCouponByCode(coupon_code, empid) {
         status_Cop: false,
       },
     });
+
+    // ---- ส่วนที่เพิ่มเข้ามา: บันทึกข้อมูลลงตาราง receipt ----
+    const newReceipt = await tx.receipt.create({
+      data: {
+        menu_name: coupon.menuname,
+        point_coupon: coupon.point_cop,
+        uid: coupon.uid,
+        code_coupon: coupon.code_cop,
+        create_date: newHistory.createdat, // ใช้เวลาที่สร้าง history
+        employee_id: empid,
+        name_emp: employee.name_emp, // ใช้ชื่อพนักงานที่ดึงมาในขั้นตอนที่ 1
+        unit: coupon.unit,
+        coupon_status: 'ใช้งานแล้ว', // กำหนดสถานะตาม logic
+      },
+    });
+
+    return newReceipt; // ส่งข้อมูลใบเสร็จที่สร้างใหม่กลับไป
   });
 
-  return coupon;
+  return result;
 }
 
 async function getCouponLogs() {
