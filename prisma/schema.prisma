@@ -125,3 +125,16 @@ model Poll_Point {
   description String
   createdat   DateTime @default(now())
 }
+
+model receipt_coupon {
+  id             Int      @id @default(autoincrement())
+  menu_name      String   // uc.menuname
+  point_coupon   Int      // uc.point_cop
+  uid            String   // uc.uid
+  code_coupon    String?  // uc.code_cop
+  create_date    DateTime // ch.createdat
+  employee_id    String   // ch.empid
+  name_emp       String   // ep.name_emp
+  unit           Int      // ch.unit
+  coupon_status  String   // 'ใช้งานแล้ว' หรือ 'ยังไม่ได้ใช้งาน'
+}

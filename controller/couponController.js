@@ -46,18 +46,36 @@ exports.deleteUserCoupon = async (req, res) => {
 exports.redeemCouponByCode = async (req, res) => {
   try {
     const { coupon_code } = req.body;
-    const empid = req.employee.empid;
+    const empid = req.employee?.empid; // กันกรณี req.employee ไม่มี
+
+    if (!coupon_code || !empid) {
+      return res.status(400).json({
+        success: false,
+        message: "ข้อมูลไม่ครบถ้วน (ต้องมี coupon_code และ empid)",
+      });
+    }
+
     const coupon = await couponService.redeemCouponByCode(coupon_code, empid);
 
     res.status(200).json({
       success: true,
       message: "ใช้คูปองสำเร็จ",
-      data: { couponCode: coupon.code_cop, empid, menuname: coupon.menuname, unit: coupon.unit },
+      data: {
+        couponCode: coupon.code_cop,
+        empid,
+        menuname: coupon.menuname,
+        unit: coupon.unit,
+      },
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message || "เกิดข้อผิดพลาด" });
+    console.error("redeemCouponByCode error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message || "เกิดข้อผิดพลาด",
+    });
   }
 };
+
 
 // ✅ Get Logs
 exports.getLogusecoupon = async (req, res) => {

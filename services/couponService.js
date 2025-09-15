@@ -82,65 +82,31 @@ async function deleteUserCoupon(coupon_id) {
 }
 
 async function redeemCouponByCode(coupon_code, empid) {
-  // หาคูปองก่อนเริ่ม Transaction
   const coupon = await prisma.userCoupon.findFirst({ where: { code_cop: coupon_code } });
   if (!coupon) throw new Error("คูปองไม่ถูกต้อง");
   if (!coupon.status) throw new Error("คูปองถูกใช้งานไปแล้ว");
   if (coupon.exp && new Date(coupon.exp) < new Date()) throw new Error("คูปองหมดอายุแล้ว");
 
-  try {
-    // ใช้ Transaction เพื่อรันทุกอย่างพร้อมกัน
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. หาข้อมูลพนักงานใน Transaction
-      const employee = await tx.empuser.findUnique({ where: { empid: empid } });
-      if (!employee) {
-        throw new Error("ไม่พบข้อมูลพนักงาน");
-      }
-
-      // 2. อัปเดตสถานะคูปอง
-      await tx.userCoupon.update({
-        where: { idcoupon: coupon.idcoupon },
-        data: { status: false },
-      });
-
-      // 3. สร้างประวัติการใช้คูปอง
-      const couponHistory = await tx.couponHistory.create({
-        data: {
-          empid,
-          uid: coupon.uid,
-          idcoupon: coupon.idcoupon,
-          menuname: coupon.menuname,
-          unit: coupon.unit,
-          description: `คูปองถูกใช้โดยพนักงาน ID: ${empid}`,
-          status_Cop: false,
-        },
-      });
-
-      // 4. สร้างใบเสร็จ (อยู่ภายใน Transaction)
-      const receiptData = {
-        menu_name: coupon.menuname,
-        point_coupon: coupon.point_cop,
-        uid: coupon.uid,
-        code_coupon: coupon.code_cop,
-        create_date: couponHistory.createdat,
-        employee_id: empid,
-        employee_name: employee.name_emp,
-        unit: couponHistory.unit,
-        coupon_status: "ใช้งานแล้ว",
-      };
-      // ใช้ tx.receipt.create() แทน prisma.receipt.create()
-      await tx.receipt.create({ data: receiptData });
-
-      return { coupon, couponHistory };
+  await prisma.$transaction(async (tx) => {
+    await tx.userCoupon.update({
+      where: { idcoupon: coupon.idcoupon },
+      data: { status: false },
     });
 
-    console.log("การใช้งานคูปองและการบันทึกใบเสร็จเสร็จสมบูรณ์");
-    return result.coupon;
+    await tx.couponHistory.create({
+      data: {
+        empid,
+        uid: coupon.uid,
+        idcoupon: coupon.idcoupon,
+        menuname: coupon.menuname,
+        unit: coupon.unit,
+        description: `คูปองถูกใช้โดยพนักงาน ID: ${empid}`,
+        status_Cop: false,
+      },
+    });
+  });
 
-  } catch (error) {
-    console.error("เกิดข้อผิดพลาดในการแลกคูปอง:", error);
-    throw error;
-  }
+  return coupon;
 }
 
 async function getCouponLogs() {
