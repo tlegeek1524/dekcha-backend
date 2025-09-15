@@ -1,5 +1,7 @@
 // controllers/couponController.js
 const couponService = require("../services/couponService");
+const { PrismaClient } = require("@prisma/client");   // ✅ import prisma
+const prisma = new PrismaClient();   
 
 // ✅ Redeem Coupon
 exports.redeemCoupon = async (req, res) => {
