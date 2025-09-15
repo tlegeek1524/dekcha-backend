@@ -88,12 +88,14 @@ async function redeemCouponByCode(coupon_code, empid) {
   if (coupon.exp && new Date(coupon.exp) < new Date()) throw new Error("คูปองหมดอายุแล้ว");
 
   await prisma.$transaction(async (tx) => {
+    // อัพเดทสถานะคูปอง
     await tx.userCoupon.update({
       where: { idcoupon: coupon.idcoupon },
       data: { status: false },
     });
 
-    await tx.couponHistory.create({
+    // สร้าง history การใช้งาน
+    const couponHistory = await tx.couponHistory.create({
       data: {
         empid,
         uid: coupon.uid,
@@ -102,6 +104,20 @@ async function redeemCouponByCode(coupon_code, empid) {
         unit: coupon.unit,
         description: `คูปองถูกใช้โดยพนักงาน ID: ${empid}`,
         status_Cop: false,
+      },
+    });
+
+    // บันทึกข้อมูลเข้า receipt_coupon ตาม SQL query ที่กำหนด
+    await tx.receiptCoupon.create({
+      data: {
+        MENU_NAME: coupon.menuname,
+        POINT_COUPON: coupon.point_cop,
+        UID: coupon.uid,
+        CODE_COUPON: coupon.code_cop,
+        CREATE_DATE: couponHistory.createdat || new Date(),
+        EMPLOYEE_ID: empid,
+        UNIT: coupon.unit,
+        coupon_status: 'ใช้งานแล้ว'
       },
     });
   });
