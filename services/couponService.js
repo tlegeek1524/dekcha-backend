@@ -16,6 +16,17 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
 
     const couponCode = await genCodeCoupon(tx, user_id, 6);
 
+    // วิธีที่ 1: เพิ่ม 7 ชั่วโมงแบบง่าย
+    const thailandTime = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
+
+    // วิธีที่ 2: ใช้ moment-timezone (ต้อง npm install moment-timezone)
+    // const moment = require('moment-timezone');
+    // const thailandTime = moment().tz('Asia/Bangkok').toDate();
+
+    // วิธีที่ 3: ใช้ date-fns-tz (ต้อง npm install date-fns date-fns-tz)
+    // const { zonedTimeToUtc } = require('date-fns-tz');
+    // const thailandTime = zonedTimeToUtc(new Date(), 'Asia/Bangkok');
+
     const newCoupon = await tx.userCoupon.create({
       data: {
         uid: user.uid,
@@ -42,6 +53,7 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
         point: points_used,
         point_status: false,
         description: `แลกคูปองเมนู ${menu_name}`,
+        createdat: thailandTime, // เพิ่ม createdat ด้วย Thai timezone
       },
     });
 
