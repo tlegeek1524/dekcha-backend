@@ -17,13 +17,21 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
     if (!user) throw new Error("ไม่พบผู้ใช้ในระบบ");
     if (user.userpoint < points_used) throw new Error("แต้มไม่เพียงพอในการแลกคูปอง");
 
+    // หักแต้ม
     await tx.user.update({
       where: { userid: user_id },
       data: { userpoint: user.userpoint - points_used },
     });
 
+    // สร้างโค้ดคูปอง
     const couponCode = await genCodeCoupon(tx, user_id, 6);
 
+    // เวลาไทยปัจจุบัน
+    const nowThai = getThaiDate();
+    const expThai = new Date(nowThai);
+    expThai.setDate(expThai.getDate() + 7);
+
+    // บันทึกคูปองใหม่
     const newCoupon = await tx.userCoupon.create({
       data: {
         uid: user.uid,
@@ -35,11 +43,12 @@ async function redeemCoupon({ menu_id, menu_name, points_used, user_id, user_uid
         point_cop: points_used,
         unit: 1,
         code_cop: couponCode,
-        date: new Date(),
-        exp: new Date(new Date().setDate(new Date().getDate() + 7)),
+        date: nowThai,
+        exp: expThai,
       },
     });
 
+    // บันทึกประวัติการใช้แต้ม
     await tx.pointLog.create({
       data: {
         empid: "SYSTEM",
