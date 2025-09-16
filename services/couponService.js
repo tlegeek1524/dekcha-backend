@@ -124,6 +124,12 @@ async function redeemCouponByCode(coupon_code, empid) {
         },
       });
 
+      // --- ส่วนที่ปรับปรุง ---
+      // สร้าง Date object ใหม่จากเวลาที่บันทึกใน couponHistory (ซึ่งเป็น UTC)
+      // จากนั้นเพิ่มเวลาเข้าไป 7 ชั่วโมงเพื่อแปลงเป็นเวลาประเทศไทย
+      const thaiCreateDate = new Date(couponHistory.createdat);
+      thaiCreateDate.setHours(thaiCreateDate.getHours() + 7);
+
       // บันทึกข้อมูลเข้า receipt_coupon ตาม schema ที่กำหนด
       await tx.receipt_coupon.create({
         data: {
@@ -131,7 +137,7 @@ async function redeemCouponByCode(coupon_code, empid) {
           point_coupon: coupon.point_cop,
           uid: coupon.uid,
           code_coupon: coupon.code_cop,
-          create_date: couponHistory.createdat || new Date(),
+          create_date: thaiCreateDate, // ใช้เวลาประเทศไทยที่ปรับแล้ว
           employee_id: empid,
           name_emp: employee.name_emp,
           unit: coupon.unit,
